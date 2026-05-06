@@ -17,19 +17,30 @@ def extract_linear_flow_by_rule(user_input: str) -> LinearFlowSpec:
     """
     不调用大模型，直接用规则从用户输入中提取线性流程步骤。
     目的：先保证 linear flow 一定可以输出 Mermaid。
+    支持：
+    1. 单行输入
+    2. 多行输入
+    3. 空行分隔
+    4. 中文句号、分号、逗号
+    5. 然后、接着、随后、之后、最后等逻辑连接词
     """
 
+    # 2. 支持更多分隔符
     separators = [
+        r"\n+",      # 一个或多个换行
         "然后",
         "接着",
         "随后",
         "之后",
-        "再",
         "最后",
         "最终",
         "并且",
         "，",
         ",",
+        "。",
+        "；",
+        ";",
+        r"\.",
         "->",
         "→",
     ]
@@ -66,9 +77,28 @@ def extract_linear_flow_by_rule(user_input: str) -> LinearFlowSpec:
 
     return LinearFlowSpec(steps=step_items)
 
+def read_multiline_input() -> str:
+    print("请输入流程描述。")
+    print("可以输入多行内容，输入完成后，单独输入 END 结束：")
+
+    lines = [] #存储用户输入
+
+    while True:
+        line = input() #一直遍历输入，直到主动BREAK
+
+        if line.strip() == "END":
+            break
+
+        lines.append(line) #如果输入不是END，就保存在lines中
+
+    return "\n".join(lines).strip()  # .strip()去掉前后空格; "\n".join(lines)将多行内容重新拼接成完整字符串
 
 def main():
-    user_input = input("请输入流程描述：")
+    user_input = read_multiline_input()
+
+    if not user_input:
+        print("输入为空，程序结束。")
+        return
 
     flow_type = route_flow_type(user_input)
 
