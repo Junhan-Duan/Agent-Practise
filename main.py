@@ -2,6 +2,7 @@ from routers.flow_router import route_flow_type
 from branch_flow_extractor import extract_branch_flow, BranchFlowExtractor
 from pathlib import Path
 import re
+from ingest.document_loader import load_document
 
 from models.linear_flow_spec import LinearFlowSpec, StepItem
 from processors.role_normalizer import normalize_roles_by_input
@@ -93,8 +94,40 @@ def read_multiline_input() -> str:
 
     return "\n".join(lines).strip()  # .strip()去掉前后空格; "\n".join(lines)将多行内容重新拼接成完整字符串
 
+def read_user_input() -> str:
+    """
+    让用户选择输入方式：
+    1. 手动输入多行自然语言流程
+    2. 从 .txt / .md 文档读取流程描述
+    """
+
+    print("请选择输入方式：")
+    print("1. 手动输入流程描述")
+    print("2. 从 .txt / .md 文档读取")
+    
+    choice = input("请输入选项 1 或 2：").strip()
+
+    if choice == "2":
+        file_path = input("请输入文档路径：").strip().strip('"').strip("'")
+        user_input = load_document(file_path)
+
+        print("\n文档读取成功，内容预览如下：")
+        print("-" * 50)
+        print(user_input[:1000])
+        print("-" * 50)
+
+        confirm = input("是否继续生成流程图？[y/n]: ").strip().lower()
+
+        if confirm != "y":
+            print("已取消。")
+            return ""
+
+        return user_input
+
+    return read_multiline_input()
+
 def main():
-    user_input = read_multiline_input()
+    user_input = read_user_input()
 
     if not user_input:
         print("输入为空，程序结束。")
