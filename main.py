@@ -46,8 +46,10 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
                 f"{index}. [{concept.type}] {concept.name} - {concept.description}"
             )
         #save Research Agent 返回的consept_spec in json
-        research_output_path = save_research_result(concept_spec)
-
+        research_output_path = save_research_result(
+            concept_spec,
+            output_prefix=output_prefix,
+        )
         print(f"\nResearch Agent 结果已保存到：{research_output_path}")
 
     except Exception as e:
@@ -102,7 +104,10 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
                 print(
                     f"{index}. [{dependency.type}] {dependency.name} - {dependency.description}"
                 )
-            decomposition_output_path = save_decomposition_result(decomposition_spec)
+            decomposition_output_path = save_decomposition_result(
+                decomposition_spec,
+                output_prefix=output_prefix,
+            )
             print(f"\nDecomposition Agent 结果已保存到：{decomposition_output_path}")
 
 

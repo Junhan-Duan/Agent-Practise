@@ -1,0 +1,33 @@
+{
+  "modules": [
+    {
+      "name": "登录验证模块",
+      "responsibility": "验证用户提供的登录信息是否正确"
+    }
+  ],
+  "decisions": [
+    {
+      "question": "登录信息是否完整",
+      "options": [],
+      "description": "系统检查用户提供的登录信息是否完整，如果完整则继续，否则提示用户重新输入"
+    }
+  ],
+  "flows": [
+    {
+      "source": "用户输入账号和密码",
+      "target": "系统检查登录信息是否完整",
+      "condition": ""
+    },
+    {
+      "source": "系统检查登录信息是否完整",
+      "target": "调用登录验证模块",
+      "condition": "登录信息完整"
+    },
+    {
+      "source": "系统检查登录信息是否完整",
+      "target": "提示用户重新输入",
+      "condition": "登录信息不完整"
+    }
+  ],
+  "dependencies": []
+}
