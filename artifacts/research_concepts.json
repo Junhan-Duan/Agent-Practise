@@ -1,19 +1,24 @@
 {
   "concepts": [
     {
-      "name": "用户输入项目名称",
+      "name": "用户上传文件",
       "type": "input",
-      "description": "用户输入项目名称作为系统处理的基础信息。"
+      "description": "用户上传文件，作为流程的起始输入。"
     },
     {
-      "name": "系统生成项目摘要",
-      "type": "process",
-      "description": "系统根据用户输入生成项目的摘要信息。"
+      "name": "检查文件格式",
+      "type": "decision",
+      "description": "判断上传的文件格式是否支持。"
     },
     {
-      "name": "展示结果",
+      "name": "调用文件解析模块",
+      "type": "module",
+      "description": "调用文件解析模块来处理支持的文件。"
+    },
+    {
+      "name": "提示用户重新上传",
       "type": "process",
-      "description": "系统将生成的项目摘要展示给用户。"
+      "description": "提示用户重新上传文件，因为文件格式不支持。"
     }
   ]
 }

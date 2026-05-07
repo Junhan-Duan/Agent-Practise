@@ -10,6 +10,7 @@ from utils.result_saver import save_research_result, save_decomposition_result
 from ingest.Input_reader import read_user_input
 from processors.role_normalizer import normalize_roles_by_input
 from processors.linear_rule_extractor import extract_linear_flow_by_rule
+from processors.flow_segmenter import split_flow_segments
 
 from builders.flowchart_builder import build_flowchart_from_linear
 from compilers.flowchart_compiler import compile_flowchart
@@ -143,14 +144,13 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         diagram_dir = Path("diagrams")
         diagram_dir.mkdir(exist_ok=True)
 
-        output_path = diagram_dir / "branch_flowchart.mmd"
+        output_path = diagram_dir / f"{output_prefix}_branch.mmd"
         output_path.write_text(mermaid_code, encoding="utf-8")
 
         print(f"\n已保存到：{output_path}")
 
-        image_path = diagram_dir / "branch_flowchart.svg"
+        image_path = diagram_dir / f"{output_prefix}_branch.svg"  #根据flow编号动态命名，防止相互覆盖
         render_mermaid_to_image(output_path, image_path)
-
     elif flow_type == "linear":
         # 1. 不调用 LLM，直接用规则提取 linear steps
         linear_spec = extract_linear_flow_by_rule(user_input)
@@ -174,12 +174,12 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         diagram_dir = Path("diagrams")
         diagram_dir.mkdir(exist_ok=True)
 
-        output_path = diagram_dir / "flowchart.mmd"
+        output_path = diagram_dir / f"{output_prefix}_linear.mmd"
         output_path.write_text(mermaid_code, encoding="utf-8")
 
         print(f"\n已保存到：{output_path}")
-        
-        image_path = diagram_dir / "branch_flowchart.svg"
+
+        image_path = diagram_dir / f"{output_prefix}_linear.svg"
         render_mermaid_to_image(output_path, image_path)
 
     else:
@@ -187,17 +187,34 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         print(flow_type)
 
 def main():
+    """
+    主入口函数。
+
+    当前职责：
+    1. 读取用户输入或文档内容
+    2. 使用 Flow Segmenter 判断输入中有几个流程
+    3. 逐个调用 process_single_flow() 处理每个流程
+    """
+
     user_input = read_user_input()
 
     if not user_input:
         print("输入为空，程序结束。")
         return
 
-    process_single_flow(
-        user_input=user_input,
-        output_prefix="flow_01"
-    )
+    segment_list = split_flow_segments(user_input)
 
+    print(f"\n检测到 {len(segment_list.flows)} 个流程。")
+
+    for segment in segment_list.flows:
+        print("\n" + "=" * 60)
+        print(f"开始处理：{segment.id} - {segment.title}")
+        print("=" * 60)
+
+        process_single_flow(
+            user_input=segment.content,
+            output_prefix=segment.id,
+        )
 
 
 if __name__ == "__main__":
