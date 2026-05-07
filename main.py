@@ -19,20 +19,21 @@ from utils.loop_repairs import repair_loop_edges
 
 from validators.branch_validator import validate_branch_flow, print_validation_result
 
-def main():
-    user_input = read_user_input()
+def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None: #aviod D-Agent mistakely use a unexisted variable
+    """
+    处理单个流程片段。
 
-    if not user_input:
-        print("输入为空，程序结束。")
-        return
+    当前职责：
+    1. 调用 Research Agent 抽取 concepts
+    2. 调用 Decomposition Agent 拆解 modules / decisions / flows / dependencies
+    3. 调用 Router 判断流程类型
+    4. 根据 branch / linear 分别生成 Mermaid 和 SVG
 
-    # ============================================================
-    # Research Agent：抽取关键概念
-    # 作用：
-    # 1. 从用户输入 / 文档内容中抽取关键概念
-    # 2. 当前阶段只做旁路预览，不影响 router 和流程图生成
-    # ============================================================
-#set a default value to concept_spec
+    output_prefix 当前先作为预留参数。
+    下一步支持多流程时，它会用于生成不同文件名，例如：
+    flow_01_branch.svg
+    flow_02_branch.svg
+    """
     concept_spec = None
 
     try:
@@ -184,6 +185,19 @@ def main():
     else:
         print("\n暂不支持的流程类型：")
         print(flow_type)
+
+def main():
+    user_input = read_user_input()
+
+    if not user_input:
+        print("输入为空，程序结束。")
+        return
+
+    process_single_flow(
+        user_input=user_input,
+        output_prefix="flow_01"
+    )
+
 
 
 if __name__ == "__main__":
