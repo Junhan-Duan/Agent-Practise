@@ -1,5 +1,10 @@
 from pathlib import Path
-
+from utils.console_logger import (
+    print_flow_start,
+    print_flow_summary,
+    print_saved_result,
+    print_stage,
+)
 
 from routers.flow_router import route_flow_type
 from branch_flow_extractor import extract_branch_flow, BranchFlowExtractor
@@ -36,6 +41,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
     flow_02_branch.svg
     """
     concept_spec = None
+    print_stage(1, "Research Agent：概念抽取")
 
     try:
         concept_spec = extract_concepts(user_input)
@@ -50,7 +56,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
             concept_spec,
             output_prefix=output_prefix,
         )
-        print(f"\nResearch Agent 结果已保存到：{research_output_path}")
+        print_saved_result("Research Agent 结果", research_output_path)
 
     except Exception as e:
         print("\nResearch Agent 概念抽取失败，但不会影响流程图生成。")
@@ -63,6 +69,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
     # 2. 当前阶段只做旁路预览，不影响 router 和流程图生成
     # 3. 如果 Research Agent 没有有效 concepts，则跳过 Decomposition
     # ============================================================
+    print_stage(2, "Decomposition Agent：系统拆解")
 
     if concept_spec is not None and concept_spec.concepts:
         try:
@@ -108,7 +115,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
                 decomposition_spec,
                 output_prefix=output_prefix,
             )
-            print(f"\nDecomposition Agent 结果已保存到：{decomposition_output_path}")
+            print_saved_result("Research Agent 结果", research_output_path)         
 
 
         except Exception as e:
@@ -118,11 +125,13 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
     else:
         print("\nDecomposition Agent 已跳过：没有可用 concepts。")
     
+    print_stage(3, "Router：流程类型判断")
     flow_type = route_flow_type(user_input)
 
     print("\nRouter 判断结果：")
     print(flow_type)
 
+    print_stage(4, "Flowchart Output：流程图生成")
     if flow_type == "branch":
     # 1. 用 LLM 抽取 branch JSON
         branch_diagram = extract_branch_flow(user_input)
@@ -152,7 +161,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         output_path = diagram_dir / f"{output_prefix}_branch.mmd"
         output_path.write_text(mermaid_code, encoding="utf-8")
 
-        print(f"\n已保存到：{output_path}")
+        print_saved_result("Branch Mermaid 文件", output_path)
 
         image_path = diagram_dir / f"{output_prefix}_branch.svg"  #根据flow编号动态命名，防止相互覆盖
         render_mermaid_to_image(output_path, image_path)
@@ -182,7 +191,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         output_path = diagram_dir / f"{output_prefix}_linear.mmd"
         output_path.write_text(mermaid_code, encoding="utf-8")
 
-        print(f"\n已保存到：{output_path}")
+        print_saved_result("Linear Mermaid 文件", output_path)
 
         image_path = diagram_dir / f"{output_prefix}_linear.svg"
         render_mermaid_to_image(output_path, image_path)
@@ -209,12 +218,15 @@ def main():
 
     segment_list = split_flow_segments(user_input)
 
-    print(f"\n检测到 {len(segment_list.flows)} 个流程。")
+    print_flow_summary(segment_list)
 
-    for segment in segment_list.flows:
-        print("\n" + "=" * 60)
-        print(f"开始处理：{segment.id} - {segment.title}")
-        print("=" * 60)
+    for index, segment in enumerate(segment_list.flows, start=1):
+        print_flow_start(
+            flow_id=segment.id,
+            flow_title=segment.title,
+            current_index=index,
+            total_count=len(segment_list.flows),
+        )
 
         process_single_flow(
             user_input=segment.content,
