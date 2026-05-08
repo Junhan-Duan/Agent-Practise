@@ -15,7 +15,6 @@ from branch_flow_extractor import (
 from agents.research_agent import extract_concepts
 from agents.decomposition_agent import extract_decomposition
 from utils.result_saver import save_research_result, save_decomposition_result
-from utils.loop_repairs import repair_loop_edges, remove_invalid_end_back_edges
 
 from ingest.Input_reader import read_user_input
 from processors.role_normalizer import normalize_roles_by_input
@@ -142,7 +141,6 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         branch_diagram = extract_branch_flow(user_input)
 
         branch_diagram = repair_loop_edges(branch_diagram)
-        branch_diagram = remove_invalid_end_back_edges(branch_diagram)
 
         errors, warnings = validate_branch_flow(branch_diagram, user_input)
         print_validation_result(errors, warnings)
@@ -154,11 +152,9 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
                 user_input=user_input,
                 errors=errors,
                 previous_diagram=branch_diagram,
-                    decomposition_spec=decomposition_spec,
             )
 
             branch_diagram = repair_loop_edges(branch_diagram)
-            branch_diagram = remove_invalid_end_back_edges(branch_diagram)
 
             errors, warnings = validate_branch_flow(branch_diagram, user_input)
             print_validation_result(errors, warnings)

@@ -21,12 +21,12 @@
       "description": "判断账号密码是否正确"
     },
     {
-      "name": "用户访问权限检查",
+      "name": "用户访问权限",
       "type": "decision",
-      "description": "检查用户是否具有访问权限"
+      "description": "判断用户是否具有访问权限"
     },
     {
-      "name": "系统首页加载用户菜单",
+      "name": "系统首页",
       "type": "process",
       "description": "进入系统首页并加载用户菜单"
     }

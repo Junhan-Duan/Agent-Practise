@@ -83,7 +83,7 @@
     {
       "name": "检查 Mermaid 渲染",
       "type": "decision",
-      "description": "判断 Mermaid 是否可以渲染"
+      "description": "检查 Mermaid 是否可以渲染"
     },
     {
       "name": "提示检查流程描述或 Mermaid 代码",

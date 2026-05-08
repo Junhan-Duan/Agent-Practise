@@ -66,15 +66,15 @@
     },
     {
       "name": "Mermaid 渲染检查",
-      "responsibility": "判断 Mermaid 是否可以渲染"
+      "responsibility": "检查 Mermaid 是否可以渲染"
     },
     {
       "name": "Mermaid 渲染失败提示",
       "responsibility": "当 Mermaid 不能渲染时，提示用户检查"
     },
     {
-      "name": "Mermaid 文件保存",
-      "responsibility": "当 Mermaid 可以渲染时，保存 Mermaid 文件和 SVG 图片"
+      "name": "保存 Mermaid 和 SVG",
+      "responsibility": "当 Mermaid 可以渲染时，保存相关文件"
     }
   ],
   "decisions": [
@@ -101,7 +101,7 @@
     {
       "question": "Mermaid 是否可以渲染",
       "options": [],
-      "description": "判断 Mermaid 是否可以渲染"
+      "description": "检查 Mermaid 代码是否可以渲染"
     }
   ],
   "flows": [
@@ -156,14 +156,9 @@
       "condition": "concepts 为空"
     },
     {
-      "source": "retry 处理",
-      "target": "Research Agent",
-      "condition": ""
-    },
-    {
-      "source": "retry 处理",
+      "source": "concepts 为空判断",
       "target": "Decomposition Agent",
-      "condition": ""
+      "condition": "concepts 不为空"
     },
     {
       "source": "Decomposition Agent",
@@ -187,12 +182,12 @@
     },
     {
       "source": "暂不支持提示",
-      "target": "Decomposition Agent",
+      "target": "Router",
       "condition": ""
     },
     {
-      "source": "Decomposition Agent",
-      "target": "Mermaid 代码生成",
+      "source": "暂不支持提示",
+      "target": "Router",
       "condition": ""
     },
     {
@@ -207,7 +202,7 @@
     },
     {
       "source": "Mermaid 渲染检查",
-      "target": "Mermaid 文件保存",
+      "target": "保存 Mermaid 和 SVG",
       "condition": "可以渲染"
     }
   ],
