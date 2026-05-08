@@ -7,10 +7,15 @@ from utils.console_logger import (
 )
 
 from routers.flow_router import route_flow_type
-from branch_flow_extractor import extract_branch_flow, BranchFlowExtractor
+from branch_flow_extractor import (
+    extract_branch_flow,
+    extract_branch_flow_with_retry,
+    BranchFlowExtractor,
+)
 from agents.research_agent import extract_concepts
 from agents.decomposition_agent import extract_decomposition
 from utils.result_saver import save_research_result, save_decomposition_result
+from utils.loop_repairs import repair_loop_edges, remove_invalid_end_back_edges
 
 from ingest.Input_reader import read_user_input
 from processors.role_normalizer import normalize_roles_by_input
@@ -41,6 +46,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
     flow_02_branch.svg
     """
     concept_spec = None
+    decomposition_spec = None
     print_stage(1, "Research Agent：概念抽取")
 
     try:
@@ -115,7 +121,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
                 decomposition_spec,
                 output_prefix=output_prefix,
             )
-            print_saved_result("Research Agent 结果", research_output_path)         
+            print_saved_result("Decomposition Agent 结果", decomposition_output_path)         
 
 
         except Exception as e:
@@ -133,28 +139,40 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
 
     print_stage(4, "Flowchart Output：流程图生成")
     if flow_type == "branch":
-    # 1. 用 LLM 抽取 branch JSON
         branch_diagram = extract_branch_flow(user_input)
 
-    # 2. 修复返回 / 重新输入 / 再次输入这种循环边
         branch_diagram = repair_loop_edges(branch_diagram)
+        branch_diagram = remove_invalid_end_back_edges(branch_diagram)
 
-    # 3. 校验 branch 结构
         errors, warnings = validate_branch_flow(branch_diagram, user_input)
         print_validation_result(errors, warnings)
 
         if errors:
-            print("\n检测到严重结构错误，建议先修复后再生成 Mermaid。")
+            print("\n第一次 branch 抽取存在结构错误，准备 retry 一次。")
+
+            branch_diagram = extract_branch_flow_with_retry(
+                user_input=user_input,
+                errors=errors,
+                previous_diagram=branch_diagram,
+                    decomposition_spec=decomposition_spec,
+            )
+
+            branch_diagram = repair_loop_edges(branch_diagram)
+            branch_diagram = remove_invalid_end_back_edges(branch_diagram)
+
+            errors, warnings = validate_branch_flow(branch_diagram, user_input)
+            print_validation_result(errors, warnings)
+
+        if errors:
+            print("\nretry 后仍检测到严重结构错误，建议先修复后再生成 Mermaid。")
             return
 
-    # 4. 生成 Mermaid
         branch_result = BranchFlowExtractor(branch_diagram)
         mermaid_code = branch_result.to_mermaid()
 
         print("\nBranch Mermaid 结果：")
         print(mermaid_code)
 
-        # 4. 保存文件
         diagram_dir = Path("diagrams")
         diagram_dir.mkdir(exist_ok=True)
 
@@ -163,8 +181,9 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
 
         print_saved_result("Branch Mermaid 文件", output_path)
 
-        image_path = diagram_dir / f"{output_prefix}_branch.svg"  #根据flow编号动态命名，防止相互覆盖
+        image_path = diagram_dir / f"{output_prefix}_branch.svg"
         render_mermaid_to_image(output_path, image_path)
+
     elif flow_type == "linear":
         # 1. 不调用 LLM，直接用规则提取 linear steps
         linear_spec = extract_linear_flow_by_rule(user_input)
