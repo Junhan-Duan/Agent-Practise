@@ -1,13 +1,15 @@
 %%{init: {"flowchart": {"defaultRenderer": "elk"}}}%%
 flowchart TD
 A(["开始"])
-B[/"用户上传文件"/]
-C{"文件格式是否支持？"}
-D[["调用文件解析模块"]]
-E[/"提示重新上传"/]
+B["STM32 通过 I2C 读取 MPU6050"]
+C["STM32 通过 USART 接收 HC05 蓝牙模块"]
+D["处理 I2C 数据"]
+E["处理 USART 数据"]
+F(["结束"])
 
 A --> B
-B --> C
-C -->|支持| D
-C -->|不支持| E
-E -.->|返回| B
+B --> D
+A --> C
+C --> E
+D --> F
+E --> F

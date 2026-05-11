@@ -1,24 +1,29 @@
 {
   "concepts": [
     {
-      "name": "用户上传文件",
+      "name": "STM32",
       "type": "input",
-      "description": "用户上传文件作为输入"
+      "description": "主控制器，用于读取传感器数据和接收蓝牙控制信息。"
     },
     {
-      "name": "检查文件格式",
-      "type": "decision",
-      "description": "判断文件格式是否被支持"
-    },
-    {
-      "name": "调用文件解析模块",
-      "type": "module",
-      "description": "调用文件解析模块来处理文件"
-    },
-    {
-      "name": "询问用户重新上传",
+      "name": "I2C",
       "type": "process",
-      "description": "询问用户重新上传文件"
+      "description": "通信协议，用于 STM32 与 MPU605族传感器之间的数据传输。"
+    },
+    {
+      "name": "MPU6050",
+      "type": "input",
+      "description": "六轴惯性传感器，提供加速度和角速度数据。"
+    },
+    {
+      "name": "USART",
+      "type": "process",
+      "description": "通信协议，用于 STM32 与 HC05 蓝牙模块之间的数据传输。"
+    },
+    {
+      "name": "HC05 蓝牙模块",
+      "type": "input",
+      "description": "无线通信模块，用于接收外部设备发送的控制信息。"
     }
   ]
 }

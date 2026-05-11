@@ -24,7 +24,7 @@ from ingest.Input_reader import read_user_input
 from processors.role_normalizer import normalize_roles_by_input
 from processors.linear_rule_extractor import extract_linear_flow_by_rule
 from processors.flow_segmenter import split_flow_segments
-
+from processors.input_scope_guard import check_input_scope
 
 from builders.flowchart_builder import build_flowchart_from_linear
 from compilers.flowchart_compiler import compile_flowchart
@@ -253,7 +253,44 @@ def select_logging_mode() -> None:
 
         print("无效选项，请输入 1 或 2。")
 
-def main():
+def confirm_input_scope(user_input: str) -> bool:
+    """
+    Check whether the input is suitable for flowchart generation.
+
+    Returns:
+        True:
+            Continue to generate flowchart.
+
+        False:
+            Cancel current generation and return to main menu.
+    """
+
+    scope_result = check_input_scope(user_input)
+
+    # If the input looks suitable, continue directly.
+    if scope_result.is_supported:
+        return True
+
+    # Otherwise, show a warning and ask the user whether to continue.
+    print("\n输入范围提醒")
+    print("-" * 60)
+    print(scope_result.reason)
+    print("本工具主要适合将包含步骤、动作、判断、分支或返回关系的内容转换为流程图。")
+
+    while True:
+        answer = input("是否仍然继续生成流程图？[y/n]: ").strip().lower()
+
+        if answer in ("y", "yes"):
+            print("已选择继续生成流程图。")
+            return True
+
+        if answer in ("n", "no", "0"):
+            print("已取消生成，返回主菜单。")
+            return False
+
+        print("请输入 y 或 n。")
+
+def main() -> bool:
     """
     主入口函数。
 
@@ -262,17 +299,22 @@ def main():
     2. 使用 Flow Segmenter 判断输入中有几个流程
     3. 逐个调用 process_single_flow() 处理每个流程
     """
-    select_logging_mode()
+
     user_input = read_user_input()
 
     if user_input is None:
-        return
+        return True
+    
+    if user_input == "__CHANGE_LOGGING_MODE__":
+        select_logging_mode()
+        return False
+
 
     user_input = user_input.strip()
 
     if not user_input:
-        print("输入为空，程序结束。")
-        return
+        print("输入为空，返回主菜单。")
+        return False
 
     segment_result = split_flow_segments(user_input.strip())
     segments = segment_result.flows
@@ -288,6 +330,9 @@ def main():
         print(f"[{index}/{len(segments)}] 开始处理：{segment.id} - {segment.title}")
         print("=" * 70)
 
+        if not confirm_input_scope(segment.content):
+            return False
+
         process_single_flow(
             user_input=segment.content,
             output_prefix=segment.id,
@@ -301,7 +346,7 @@ def main():
         )
 
     print_final_output_summary(summaries)
-
+    return False
 
 def confirm_exit_after_interrupt() -> bool:
     """
@@ -333,10 +378,18 @@ def confirm_exit_after_interrupt() -> bool:
 
 
 if __name__ == "__main__":
+    select_logging_mode()
+
     while True:
         try:
-            main()
-            break
+            should_exit = main()
+
+            if should_exit:
+                print("\n已退出 File Agent Flowchart Generator。")
+                break
+
+            print("\n已返回主菜单。")
+            continue
 
         except KeyboardInterrupt:
             should_exit = confirm_exit_after_interrupt()

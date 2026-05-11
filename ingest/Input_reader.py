@@ -93,10 +93,11 @@ def read_user_input() -> Optional[str]:
         print("[1] 手动输入流程描述")
         print("[2] 从 .txt / .md 文档读取")
         print("[3] 运行内置回归测试")
+        print("[4] 更改日志模式")
         print("[0] 退出程序")
 
         try:
-            choice = input("\n请输入选项 0 / 1 / 2 / 3：").strip()
+            choice = input("\n请输入选项 0 / 1 / 2 / 3 / 4：").strip()
         except KeyboardInterrupt:
             raise
 
@@ -237,6 +238,9 @@ def read_user_input() -> Optional[str]:
                 raise
 
             return None
+        
+        if choice == "4":
+            return "__CHANGE_LOGGING_MODE__"
 
         # ------------------------------------------------------------
         # 无效输入：重新提示，而不是直接退出

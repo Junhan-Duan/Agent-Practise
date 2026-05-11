@@ -626,3 +626,15 @@ The report is saved to:
 
 ```text
 artifacts/regression_report.txt
+
+## Input Scope Guard
+
+The CLI now checks whether the input is suitable for flowchart generation before running the Agent pipeline.
+
+If the input looks like a static topology description, concept explanation, question, or other non-workflow text, the system will show a warning and ask whether to continue.
+
+Users can:
+- Enter `y` to continue generation
+- Enter `n` or `0` to return to the main menu
+
+The main menu also supports changing the logging mode with option `[4]`.
