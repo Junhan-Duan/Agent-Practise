@@ -4,7 +4,7 @@ import urllib.error
 
 from models.concept_spec import ConceptListSpec
 from utils.prompt_loader import load_prompt
-
+from utils.logger import log_debug
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL_NAME = "deepseek-r1:8b"
@@ -65,8 +65,8 @@ def extract_concepts(user_input: str) -> ConceptListSpec:
 
     raw_json = result["response"]
 
-    print("\nResearch Agent 返回的 concepts JSON：")
-    print(raw_json)
+    log_debug("\nResearch Agent 返回的 concepts JSON：")
+    log_debug(raw_json)
 
     try:
         data = json.loads(raw_json)
@@ -129,8 +129,8 @@ def extract_concepts(user_input: str) -> ConceptListSpec:
 
     retry_raw_json = retry_result["response"]
 
-    print("\nResearch Agent 重试返回的 concepts JSON：")
-    print(retry_raw_json)
+    log_debug("\nResearch Agent 重试返回的 concepts JSON：")
+    log_debug(retry_raw_json)
 
     try:
         retry_data = json.loads(retry_raw_json)

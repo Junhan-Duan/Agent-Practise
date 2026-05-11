@@ -4,6 +4,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, Optional
+from utils.logger import log_debug
 
 from models.branch_flow_spec import BranchFlowSpec
 
@@ -143,7 +144,7 @@ def build_branch_prompt(user_input: str) -> str:
 # 3. 把模型输出转换成 BranchFlowSpec
 # ============================================================
 
-def _call_ollama(prompt: str, timeout: int = 180) -> str:
+def _call_ollama(prompt: str, timeout: int = 240) -> str:
     """
     调用本地 Ollama。
     返回模型原始 response 字符串。
@@ -260,8 +261,8 @@ def extract_branch_flow(user_input: str) -> BranchFlowSpec:
 
     raw_json = _call_ollama(prompt)
 
-    print("\nOllama 返回的 branch JSON：")
-    print(raw_json)
+    log_debug("\nOllama 返回的 branch JSON：")
+    log_debug(raw_json)
 
     return _parse_branch_response(raw_json)
 
@@ -408,8 +409,8 @@ def extract_branch_flow_with_retry(
 
     raw_json = _call_ollama(retry_prompt)
 
-    print("\nBranch retry 返回的 branch JSON：")
-    print(raw_json)
+    log_debug("\nBranch retry 返回的 branch JSON：")
+    log_debug(raw_json)
 
     return _parse_branch_response(raw_json)
 
