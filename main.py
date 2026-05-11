@@ -17,11 +17,13 @@ from agents.research_agent import extract_concepts
 from agents.decomposition_agent import extract_decomposition
 from utils.result_saver import save_research_result, save_decomposition_result
 from utils.agent_pipeline_repairs import repair_agent_pipeline_edges
+from utils.output_summary import build_output_summary, print_final_output_summary
 
 from ingest.Input_reader import read_user_input
 from processors.role_normalizer import normalize_roles_by_input
 from processors.linear_rule_extractor import extract_linear_flow_by_rule
 from processors.flow_segmenter import split_flow_segments
+
 
 from builders.flowchart_builder import build_flowchart_from_linear
 from compilers.flowchart_compiler import compile_flowchart
@@ -238,26 +240,39 @@ def main():
     if user_input is None:
         return
 
+    user_input = user_input.strip()
+
     if not user_input:
         print("输入为空，程序结束。")
         return
 
-    segment_list = split_flow_segments(user_input)
+    segment_result = split_flow_segments(user_input.strip())
+    segments = segment_result.flows
 
-    print_flow_summary(segment_list)
+    print(f"\n检测到 {len(segments)} 个流程：")
+    for segment in segments:
+        print(f"- {segment.id}：{segment.title}")
 
-    for index, segment in enumerate(segment_list.flows, start=1):
-        print_flow_start(
-            flow_id=segment.id,
-            flow_title=segment.title,
-            current_index=index,
-            total_count=len(segment_list.flows),
-        )
+    summaries = []
+
+    for index, segment in enumerate(segments, start=1):
+        print("\n" + "=" * 70)
+        print(f"[{index}/{len(segments)}] 开始处理：{segment.id} - {segment.title}")
+        print("=" * 70)
 
         process_single_flow(
             user_input=segment.content,
             output_prefix=segment.id,
         )
+
+        summaries.append(
+            build_output_summary(
+                output_prefix=segment.id,
+                flow_title=getattr(segment, "title", "默认流程"),
+            )
+        )
+
+    print_final_output_summary(summaries)
 
 
 def confirm_exit_after_interrupt() -> bool:
