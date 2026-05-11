@@ -81,7 +81,7 @@ def extract_decomposition(
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
+        with urllib.request.urlopen(request, timeout=240) as response:
             result = json.loads(response.read().decode("utf-8"))
 
     except urllib.error.URLError as e:
@@ -92,8 +92,9 @@ def extract_decomposition(
 
     raw_json = result["response"]
 
-    print("\nDecomposition Agent 返回的 decomposition JSON：")
-    print(raw_json)
+    from utils.logger import log_debug
+    log_debug("\nDecomposition Agent 返回的 decomposition JSON：")
+    log_debug(raw_json)
 
     try:
         data = json.loads(raw_json)

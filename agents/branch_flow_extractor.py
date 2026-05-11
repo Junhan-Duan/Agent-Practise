@@ -3,6 +3,7 @@ import re
 import urllib.request
 import urllib.error
 from typing import Any, Dict, Optional
+from utils.logger import log_debug
 
 from models.branch_flow_spec import BranchFlowSpec
 
@@ -177,7 +178,7 @@ def call_ollama(prompt: str) -> str:
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=180) as response:
+        with urllib.request.urlopen(request, timeout=240 ) as response:
             result = json.loads(response.read().decode("utf-8"))
 
     except urllib.error.URLError as e:
@@ -274,8 +275,8 @@ def extract_branch_flow(user_input: str) -> BranchFlowSpec:
 
         raw_json = call_ollama(prompt)
 
-        print(f"\nOllama 返回的 branch JSON，第 {attempt} 次：")
-        print(raw_json)
+        log_debug(f"\nOllama 返回的 branch JSON（第 {attempt} 次）：")
+        log_debug(raw_json)
 
         try:
             cleaned_json = clean_json_text(raw_json)
@@ -290,8 +291,9 @@ def extract_branch_flow(user_input: str) -> BranchFlowSpec:
         except Exception as e:
             previous_error = str(e)
 
-            print(f"\n第 {attempt} 次 branch JSON 解析或校验失败：")
-            print(previous_error)
+            log_info(f"\n第 {attempt} 次 branch JSON 解析或校验失败，系统将尝试修复。")
+            log_debug("详细错误信息：")
+            log_debug(previous_error)
 
             if attempt == max_attempts:
                 raise RuntimeError(

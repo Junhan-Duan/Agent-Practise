@@ -18,6 +18,7 @@ from agents.decomposition_agent import extract_decomposition
 from utils.result_saver import save_research_result, save_decomposition_result
 from utils.agent_pipeline_repairs import repair_agent_pipeline_edges
 from utils.output_summary import build_output_summary, print_final_output_summary
+from utils.logger import set_debug_mode, log_debug
 
 from ingest.Input_reader import read_user_input
 from processors.role_normalizer import normalize_roles_by_input
@@ -176,8 +177,8 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         branch_result = BranchFlowExtractor(branch_diagram)
         mermaid_code = branch_result.to_mermaid()
 
-        print("\nBranch Mermaid 结果：")
-        print(mermaid_code)
+        log_debug("\nBranch Mermaid 结果：")
+        log_debug(mermaid_code)
 
         diagram_dir = Path("diagrams")
         diagram_dir.mkdir(exist_ok=True)
@@ -206,8 +207,8 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         # 4. 编译成 Mermaid
         mermaid_code = compile_flowchart(flowchart_spec)
 
-        print("\nLinear Mermaid 结果：")
-        print(mermaid_code)
+        log_debug("\nLinear Mermaid 结果：")
+        log_debug(mermaid_code)
 
         # 5. 保存文件
         diagram_dir = Path("diagrams")
@@ -225,6 +226,33 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> None
         print("\n暂不支持的流程类型：")
         print(flow_type)
 
+def select_logging_mode() -> None:
+    """
+    让用户选择 normal / debug 日志模式。
+    """
+
+    print("\n请选择日志模式：")
+    print("[1] 普通模式：只显示关键步骤和最终结果")
+    print("[2] 调试模式：显示完整 JSON、Mermaid 和中间结果")
+
+    while True:
+        try:
+            choice = input("请输入选项 1 或 2：").strip()
+        except KeyboardInterrupt:
+            raise
+
+        if choice == "1":
+            set_debug_mode(False)
+            print("\n当前日志模式：普通模式")
+            return
+
+        if choice == "2":
+            set_debug_mode(True)
+            print("\n当前日志模式：调试模式")
+            return
+
+        print("无效选项，请输入 1 或 2。")
+
 def main():
     """
     主入口函数。
@@ -234,7 +262,7 @@ def main():
     2. 使用 Flow Segmenter 判断输入中有几个流程
     3. 逐个调用 process_single_flow() 处理每个流程
     """
-
+    select_logging_mode()
     user_input = read_user_input()
 
     if user_input is None:
