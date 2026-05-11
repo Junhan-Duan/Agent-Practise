@@ -618,3 +618,11 @@ The current CLI supports:
 - Return-to-menu behavior
 - Friendly file path and file type validation
 - Final output summary after generation
+## Regression Report
+
+The built-in regression test runner now generates a regression report after execution.
+
+The report is saved to:
+
+```text
+artifacts/regression_report.txt
