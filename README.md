@@ -1117,6 +1117,79 @@ payload = {
 This helps reduce unnecessary reasoning output and improves structured-output stability.
 
 ---
+## Recent Updates
+
+### Improved Branch Flow Generation
+
+The branch flow prompt has been improved to generate more meaningful labels for edges from decision nodes.
+
+Previously, decision edges could use generic labels such as `是 / 否`. The updated rule now encourages the system to use labels that describe the actual decision result when the meaning is clear.
+
+Examples:
+
+```text
+输入是否为空？ -> 为空 / 不为空
+登录信息是否完整？ -> 完整 / 不完整
+JSON 是否合法？ -> 合法 / 不合法
+```
+
+This makes generated Mermaid flowcharts easier to understand, especially for engineering workflows, validation processes, and Agent pipeline descriptions.
+
+### Improved Regression Testing
+
+The built-in regression test assertions have been improved to support keyword-based matching.
+
+Previously, the regression tests relied too much on exact node text. This could cause false failures when the LLM generated a semantically correct node with slightly different wording.
+
+For example, the following two node texts should be treated as equivalent:
+
+```text
+Mermaid 代码是否可以渲染
+Mermaid 是否可以渲染？
+```
+
+The test system now supports keyword-based node rules such as:
+
+```python
+["Mermaid", "渲染"]
+```
+
+This means that a node can pass the assertion as long as it contains all required keywords.
+
+Edge assertions also support keyword-based matching. For example:
+
+```python
+(["生成", "Mermaid"], ["Mermaid", "渲染"])
+```
+
+This checks whether there is an edge from a source node containing both `生成` and `Mermaid` to a target node containing both `Mermaid` and `渲染`.
+
+This update makes the regression tests more robust against natural language variation in LLM outputs.
+
+### Built-in Regression Tests
+
+The project includes built-in regression tests for both linear and branch flow generation.
+
+To run the built-in tests:
+
+```bash
+python main.py
+```
+
+Then select:
+
+```text
+[3] 运行内置回归测试
+```
+
+The current regression tests cover:
+
+- Chinese linear flow
+- Chinese simple branch flow
+- Chinese branch flow with return edges
+- English simple branch flow
+- English login branch flow
+- Agent pipeline flow
 
 ## Final Conclusion
 
@@ -1143,3 +1216,4 @@ PROCESSOR    100% GPU
 ```
 
 After that, `python main.py` returned to normal speed.
+
