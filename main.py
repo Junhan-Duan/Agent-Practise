@@ -35,6 +35,7 @@ from utils.loop_repairs import repair_loop_edges
 
 from validators.branch_validator import validate_branch_flow, print_validation_result
 from validators.cover_test_validator import check_decomposition_decision_coverage
+from validators.decomposition_flow_validator import check_decomposition_flow_coverage
 
 def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> dict: #aviod D-Agent mistakely use a unexisted variable
     """
@@ -176,8 +177,13 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> dict
             branch_diagram=branch_diagram,
             decomposition_spec=decomposition_spec,
         )
+        flow_coverage_errors = check_decomposition_flow_coverage(
+            branch_diagram=branch_diagram,
+            decomposition_spec=decomposition_spec,
+        )
 
         errors.extend(coverage_errors)
+        errors.extend(flow_coverage_errors)
         print_validation_result(errors, warnings)
         
 
@@ -201,8 +207,12 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> dict
                     branch_diagram=branch_diagram,
                     decomposition_spec=decomposition_spec,
                 )
-
+                flow_coverage_errors = check_decomposition_flow_coverage(
+                    branch_diagram=branch_diagram,
+                    decomposition_spec=decomposition_spec,
+                )
                 errors.extend(coverage_errors)
+                errors.extend(flow_coverage_errors)
                 print_validation_result(errors, warnings)
 
             except Exception as retry_error:
