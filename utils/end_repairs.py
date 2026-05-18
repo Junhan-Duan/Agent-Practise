@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-
+from copy import deepcopy
 from models.branch_flow_spec import BranchFlowSpec
 
 
@@ -95,18 +95,66 @@ def _is_return_node_text(text: Any) -> bool:
 def _is_end_action_text(text: Any) -> bool:
     """
     判断某个节点是否是成功/终止动作节点。
+
+    只识别明确表示流程完成、报告生成、建议生成、人工审查、
+    工单创建、通知完成等终止语义的动作节点。
+
+    返回/重试类节点不作为终止节点。
     """
 
     normalized = _normalize(text)
 
+    if not normalized:
+        return False
+
     if _is_return_node_text(normalized):
         return False
 
+    # 1. 报告类终止动作：
+    # 例如：
+    # 系统生成低风险审查报告
+    # 系统生成普通风险提示报告
+    # 系统生成修改建议和风险提示报告
+    if "生成" in normalized and "报告" in normalized:
+        return True
+
+    # 2. 建议类终止动作：
+    # 例如：
+    # 系统生成高风险终止建议
+    if "生成" in normalized and "建议" in normalized:
+        return True
+
+    # 3. 提示检查 / 人工审查类终止动作：
+    # 例如：
+    # 系统提示用户检查合同文件内容
+    # 系统提示需要人工审查
+    if "提示" in normalized and (
+        "检查" in normalized
+        or "人工审查" in normalized
+        or "人工审核" in normalized
+        or "联系客服" in normalized
+    ):
+        return True
+
+    # 4. 人工审核 / 人工审查 / 提交复核类终止动作
+    if (
+        "提交人工审核" in normalized
+        or "提交人工审查" in normalized
+        or "人工审核" in normalized
+        or "人工审查" in normalized
+    ):
+        return True
+
+    # 5. 工单类终止动作
+    # 例如：创建发货异常工单
+    if "创建" in normalized and "工单" in normalized:
+        return True
+
+    # 6. 保留原来的关键词匹配
     return any(
         _normalize(keyword) in normalized
         for keyword in END_KEYWORDS
     )
-
 
 def _find_end_node_id(nodes: List[Dict[str, Any]]) -> str | None:
     """
@@ -152,7 +200,34 @@ def _edge_exists(edges: List[Dict[str, Any]], source: str, target: str) -> bool:
         and str(edge.get("target", "")) == target
         for edge in edges
     )
+    
+def _has_non_return_outgoing_edge(edges: List[Dict[str, Any]], source: str) -> bool:
+    """
+    判断某个节点是否已经有非返回类出边。
 
+    如果已经有正常出边，说明它不是当前要补结束边的悬空终止节点，
+    不应强行再接到“流程结束”。
+    """
+
+    for edge in edges:
+        if str(edge.get("source", "")) != source:
+            continue
+
+        label = str(edge.get("label", "") or "")
+        target = str(edge.get("target", "") or "")
+
+        is_return_edge = (
+            "返回" in label
+            or "重新" in label
+            or "回到" in label
+            or "退回" in label
+            or "返回" in target
+        )
+
+        if not is_return_edge:
+            return True
+
+    return False
 
 def repair_end_edges(branch_diagram: Any) -> BranchFlowSpec:
     """
@@ -182,9 +257,22 @@ def repair_end_edges(branch_diagram: Any) -> BranchFlowSpec:
     for node in nodes:
         node_id = str(node.get("id", ""))
         node_text = str(node.get("text", ""))
+        node_kind = str(node.get("kind", ""))
 
-        if _is_end_action_text(node_text):
-            end_action_node_ids.append(node_id)
+        if not node_id:
+            continue
+
+        if node_kind == "decision":
+            continue
+
+        if not _is_end_action_text(node_text):
+            continue
+
+        # 如果已经有正常出边，不再补结束边
+        if _has_non_return_outgoing_edge(edges, node_id):
+            continue
+
+        end_action_node_ids.append(node_id)
 
     if not end_action_node_ids:
         return BranchFlowSpec.model_validate(data)
