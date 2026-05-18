@@ -56,9 +56,9 @@ def build_repair_tasks(errors: list[str]) -> str:
             task_lines.append("- 删除或避免生成该结果型 decision 节点")
             task_lines.append("- 该文本只能作为 edge.label")
             task_lines.append("- 必须保留或恢复真正的判断节点，判断节点通常包含“是否 / 能否 / 判断 / 检查”等词")
-            task_lines.append("- 例如“库存充足 / 库存不足”不能作为 decision；应使用“库存是否充足”作为 decision")
-            task_lines.append("- 例如“支付成功 / 支付失败”不能作为 decision；应使用“支付是否成功”作为 decision")
-            task_lines.append("- 例如“风控通过 / 风控不通过”不能作为 decision；应使用“风控是否通过”作为 decision")
+            task_lines.append("- 例如“条件满足 / 条件不满足”不能作为 decision；应使用“条件是否满足”作为 decision")
+            task_lines.append("- 例如“处理成功 / 处理失败”不能作为 decision；应使用“处理是否成功”作为 decision")
+            task_lines.append("- 例如“校验通过 / 校验不通过”不能作为 decision；应使用“校验是否通过”作为 decision")
 
         else:
             task_lines.append("修复类型：普通结构修复")

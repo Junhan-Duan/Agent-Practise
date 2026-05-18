@@ -417,20 +417,20 @@ A 对应节点 -> B 对应节点，edge.label = 条件。
 正常 / 异常
 高风险 / 低风险
 
-错误：
-id=9, text=未使用优惠券, kind=decision
-id=15, text=风控通过, kind=decision
-id=21, text=发货成功, kind=decision
+错误示例：
+id=9, text=条件满足, kind=decision
+id=10, text=处理成功, kind=decision
+id=11, text=校验失败, kind=decision
 
-正确：
-text=用户是否使用优惠券, kind=decision
-edge.label = 未使用优惠券
+正确示例：
+text=条件是否满足, kind=decision
+edge.label = 条件满足
 
-text=风控是否通过, kind=decision
-edge.label = 风控通过
+text=处理是否成功, kind=decision
+edge.label = 处理成功
 
-text=发货是否成功, kind=decision
-edge.label = 发货成功
+text=校验是否通过, kind=decision
+edge.label = 校验失败
 
 【return 边规则】
 

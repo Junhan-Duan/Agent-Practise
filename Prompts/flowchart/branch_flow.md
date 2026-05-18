@@ -77,14 +77,14 @@ edge: 流程类型？ -> 调用 branch extractor, label="分支流程"
 - 支持 / 不支持
 
 错误：
-未使用优惠券 作为 decision 节点
-风控通过 作为 decision 节点
-发货成功 作为 decision 节点
+条件满足 作为 decision 节点
+处理成功 作为 decision 节点
+校验失败 作为 decision 节点
 
 正确：
-用户是否使用优惠券 作为 decision 节点，未使用优惠券作为 edge.label
-风控是否通过 作为 decision 节点，风控通过作为 edge.label
-发货是否成功 作为 decision 节点，发货成功作为 edge.label
+条件是否满足 作为 decision 节点，条件满足作为 edge.label
+处理是否成功 作为 decision 节点，处理成功作为 edge.label
+校验是否通过 作为 decision 节点，校验失败作为 edge.label
 
 【edge.label 语义化】
 
