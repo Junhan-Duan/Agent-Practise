@@ -90,26 +90,26 @@ JSON 必须包含：
 用户上传文件。系统检查文件格式是否支持。如果支持，则调用文件解析模块。如果不支持，则提示用户重新上传。
 
 输出：
-{
+{{
   "diagram_type": "flowchart",
   "direction": "TD",
   "nodes": [
-    {"id": "A", "text": "开始", "kind": "start_end"},
-    {"id": "B", "text": "用户上传文件", "kind": "input_output"},
-    {"id": "C", "text": "文件格式是否支持？", "kind": "decision"},
-    {"id": "D", "text": "调用文件解析模块", "kind": "subroutine"},
-    {"id": "E", "text": "提示用户重新上传", "kind": "input_output"},
-    {"id": "F", "text": "结束", "kind": "start_end"}
+    {{"id": "A", "text": "开始", "kind": "start_end"}},
+    {{"id": "B", "text": "用户上传文件", "kind": "input_output"}},
+    {{"id": "C", "text": "文件格式是否支持？", "kind": "decision"}},
+    {{"id": "D", "text": "调用文件解析模块", "kind": "subroutine"}},
+    {{"id": "E", "text": "提示用户重新上传", "kind": "input_output"}},
+    {{"id": "F", "text": "结束", "kind": "start_end"}}
   ],
   "edges": [
-    {"source": "A", "target": "B", "label": null},
-    {"source": "B", "target": "C", "label": null},
-    {"source": "C", "target": "D", "label": "支持"},
-    {"source": "C", "target": "E", "label": "不支持"},
-    {"source": "D", "target": "F", "label": null},
-    {"source": "E", "target": "B", "label": "返回"}
+    {{"source": "A", "target": "B", "label": null}},
+    {{"source": "B", "target": "C", "label": null}},
+    {{"source": "C", "target": "D", "label": "支持"}},
+    {{"source": "C", "target": "E", "label": "不支持"}},
+    {{"source": "D", "target": "F", "label": null}},
+    {{"source": "E", "target": "B", "label": "返回"}}
   ]
-}
+}}
 
 现在处理这个用户输入：
 __USER_INPUT__
@@ -156,8 +156,10 @@ def _call_ollama(prompt: str, timeout: int = 240) -> str:
         "stream": False,
         "think": False,
         "format": BranchFlowSpec.model_json_schema(),
+        #"format": "json",
         "options": {
             "temperature": 0
+            #"num_predict": 2048
         }
     }
 
@@ -319,27 +321,51 @@ def build_branch_retry_prompt(
     return f"""
 你是一个 branch JSON 局部修复器。
 
-你的任务：
-根据校验错误和 repair tasks，在 previous_json 的基础上进行最小修复，
-并输出修复后的完整 branch JSON。
+任务：
+根据校验错误、repair tasks、previous_json 和 Decomposition Agent 参考，
+在 previous_json 基础上做最小修复，并输出修复后的完整 branch JSON。
 
 你不是重新设计流程图。
 你不是重新抽取整个流程。
-你只能针对 repair tasks 和 errors 中指出的问题进行局部修复。
+你只能修复 errors 和 repair tasks 指出的结构问题。
+硬性局部修复约束：
 
+1. 必须以 previous_json 为基础进行局部修复。
+2. previous_json 中不冲突的 nodes 和 edges 必须原样保留。
+3. 已有 node.id、node.text、node.kind 不要随意改变。
+4. 除非 repair task 或 validator error 明确要求，否则不要删除已有节点或边。
+5. previous_json 中已有的 kind="decision" 节点必须保留。
+6. 如果本次 repair task 没有涉及某个 existing decision，不得修改该 decision 的入边和出边结构。
+7. 禁止重画整张图。
+8. 禁止把 previous_json 整体替换成新的节点命名体系。
+9. 禁止生成 decision1、decision2、process1、process2 这类新命名体系来重建整张图。
+10. 允许新增节点，但新增节点只能用于 repair tasks 明确要求的缺失 decision、缺失动作或结束节点。
+11. 如果只是补边，优先新增 edge，不要新增 node。
+12. 最终必须输出完整 branch JSON，不要输出 diff / patch。
 ====================
 最小修改原则
 ====================
 
-1. previous_json 中不冲突的 nodes 必须保留。
-2. previous_json 中不冲突的 edges 必须保留。
-3. 已有 node.id 不要随意改变。
-4. 已有 node.text 不要随意改写。
-5. 已有 node.kind 不要随意改变。
-6. 除非 repair task 明确要求，否则不要删除已有节点或边。
-7. 禁止重画整张图。
-8. 禁止把判断结果生成为 decision 节点。
-9. 最终必须输出完整 branch JSON，不要输出 diff / patch。
+1. previous_json 中不冲突的 nodes 和 edges 必须保留。
+2. 已有 node.id、node.text、node.kind 不要随意改变。
+3. 除非 repair task 或 validator error 明确要求，否则不要删除已有节点或边。
+4. previous_json 中已有的 kind="decision" 节点必须保留。
+5. 如果本次 repair task 没有涉及某个 existing decision，不得修改该 decision 的入边和出边结构。
+6. 禁止重画整张图。
+7. 最终必须输出完整 branch JSON，不要输出 diff / patch。
+
+====================
+ID 一致性与短编号规则
+====================
+
+1. 禁止生成英文语义 id。
+2. 禁止生成 start、end、manual_input、document_input、system_process_each_flow_segment 等语义 id。
+3. 新增 node.id 必须使用短编号格式：N1、N2、N3……
+4. edge.source 和 edge.target 必须严格引用 nodes 中已经存在的 node.id。
+5. 如果引用已有节点，必须逐字复制该节点 id。
+6. 禁止在 edge.source 或 edge.target 中出现特殊字符或被污染的 id。
+7. 禁止把 edge.target 写成 end、null、input_end、output_end。
+8. 如果需要“流程结束”，必须在 nodes 中显式创建 kind="start_end" 的短编号节点。
 
 ====================
 上一次 branch JSON
@@ -372,19 +398,19 @@ Decomposition Agent 结构化参考
 {user_input}
 
 ====================
-修复规则
+Coverage 修复规则
 ====================
-
-【Coverage 修复规则】
 
 如果 repair task 或 error 中出现：
 Decomposition decision 未被 Branch 图覆盖：X
 
-则本次 retry 必须执行“插入缺失 decision”修复：
+则必须插入或保留对应 decision：
 
-1. nodes 中必须新增或保留一个 decision 节点，node.text 必须语义包含 X。
-2. 如果 error 中包含“相关 flows”，则这些 flows 是强约束。
-3. 对于相关 flows：
+1. nodes 中必须有一个 kind="decision" 的节点覆盖 X。
+2. node.text 必须优先直接使用 X 原文。
+3. 禁止把 X 改写成判断结果。
+4. 如果 error 中包含“相关 flows”，这些 flows 是强约束。
+5. 对于相关 flows：
    A -> X
    X -> B [condition: 条件1]
    X -> C [condition: 条件2]
@@ -394,55 +420,56 @@ Decomposition decision 未被 Branch 图覆盖：X
    X 对应节点 -> B 对应节点，edge.label = 条件1
    X 对应节点 -> C 对应节点，edge.label = 条件2
 
-4. 如果 previous_json 中存在 A -> B 或 A -> C 的跳跃边，但相关 flows 显示应为 A -> X -> B/C，则必须删除或替换这条跳跃边。
-5. 禁止只生成 X 节点但不连接它。
-
-【Decomposition Flow 修复规则】
+6. 如果 previous_json 中存在 A -> B 或 A -> C 的跳跃边，但相关 flows 显示应为 A -> X -> B/C，则必须删除或替换这条跳跃边。
+7. 禁止只生成 X 节点但不连接它。
 
 如果 error 中出现：
 Decomposition decision flow 未被 Branch 图覆盖：A -> B [condition: 条件]
 
-则必须在 Branch edges 中生成：
+则必须在 edges 中生成：
 A 对应节点 -> B 对应节点，edge.label = 条件。
 
 如果 condition 为空，则 label 使用空字符串。
 
-【判断结果不得作为节点】
+====================
+decision 与 edge.label 修复规则
+====================
 
-以下内容只能作为 edge.label，不能作为 node.text，也不能作为 decision 节点：
+1. 判断问题必须是 kind="decision"。
+2. 判断结果只能作为 edge.label，不能作为 node.text，也不能作为 decision 节点。
+3. 包含“是否 / 能否 / 是否需要 / 是否存在 / 是否为空 / 是否支持 / 是否成功 / 是否通过 / 是否检测到 / 是否发现 / 是否为”的 node.text，必须使用 kind="decision"。
+4. 以“系统判断...”开头的 node.text，必须使用 kind="decision"。
+5. 如果 error 或 repair task 中出现：
+   Decomposition decision 未被 Branch 图覆盖：X
+   则新增或保留的 decision node.text 必须优先直接使用 X 原文，禁止改写成相反方向或判断结果。
+如果一个文本缺少“是否 / 能否 / 是否需要 / 是否存在 / 是否为空 / 是否支持 / 是否成功 / 是否通过 / 是否检测到 / 是否发现 / 是否为”等判断词，
+并且它表达的是某个判断的结果，则禁止作为 decision 节点。
 
-是 / 否 / 有 / 无
-成功 / 失败 / 正确 / 错误
-通过 / 不通过
-有效 / 无效
-完整 / 不完整
-为空 / 不为空
-支持 / 不支持
-存在 / 不存在
-充足 / 不足
-超过 / 未超过
-需要 / 不需要
-使用 / 未使用
-选择 / 不选择
-正常 / 异常
-高风险 / 低风险
+错误：
+- 用户选择手动输入
+- 输入内容为空
+- 检测到多个流程
+- concepts 为空
+- 流程类型为 linear
+- branch validator 发现严重错误
+- SVG 生成成功
 
-错误示例：
-id=9, text=条件满足, kind=decision
-id=10, text=处理成功, kind=decision
-id=11, text=校验失败, kind=decision
+正确做法：
+- 用户是否选择手动输入 -> edge.label="用户选择手动输入"
+- 输入内容是否为空 -> edge.label="输入内容为空"
+- 是否检测到多个流程 -> edge.label="检测到多个流程"
+- concepts 是否为空 -> edge.label="concepts 为空"
+- 流程类型是否为 linear -> edge.label="流程类型为 linear"
+- branch validator 是否发现严重错误 -> edge.label="发现严重错误"
+- SVG 是否生成成功 -> edge.label="SVG 生成成功"
+以下内容通常只能作为 edge.label：
+是 / 否 / 有 / 无 / 成功 / 失败 / 正确 / 错误 / 通过 / 不通过 /
+有效 / 无效 / 完整 / 不完整 / 为空 / 不为空 / 支持 / 不支持 /
+存在 / 不存在 / 需要 / 不需要 / 选择 / 不选择 / 正常 / 异常
 
-正确示例：
-text=条件是否满足, kind=decision
-edge.label = 条件满足
-
-text=处理是否成功, kind=decision
-edge.label = 处理成功
-
-text=校验是否通过, kind=decision
-edge.label = 校验失败
-
-【return 边规则】
+====================
+return 边规则
+====================
 
 只有原文、previous_json 或 Decomposition flows 明确表示：
 返回、回到、重新输入、重新上传、重新支付、退回修改、补充材料
@@ -461,7 +488,12 @@ edge.label = 校验失败
 不要输出 Markdown。
 不要输出 ```json。
 不要输出思考过程。
-
+输出前必须自检：
+1. 是否保留了 previous_json 中未冲突的 node.id。
+2. 是否错误生成了 decision1、decision2、process1、process2 这类重画节点。
+3. 是否把“用户选择手动输入 / 输入内容为空 / concepts 为空 / SVG 生成成功”等分支结果误写成 decision。
+4. 是否所有 edge.source 和 edge.target 都引用 nodes 中真实存在的 id。
+5. 是否所有 repair tasks 都被处理。
 JSON 必须包含：
 1. diagram_type，固定为 "flowchart"
 2. direction，默认 "TD"
@@ -498,6 +530,7 @@ def extract_branch_flow_with_retry(
         decomposition_spec=decomposition_spec,
         repair_tasks=repair_tasks,
     )
+    print(f"[debug] retry prompt length: {len(retry_prompt)} chars", flush=True)
 
     raw_json = _call_ollama(retry_prompt)
 

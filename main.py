@@ -38,6 +38,75 @@ from validators.branch_validator import validate_branch_flow, print_validation_r
 from validators.cover_test_validator import check_decomposition_decision_coverage
 from validators.decomposition_flow_validator import check_decomposition_flow_coverage
 
+def select_retry_errors(errors: list[str], max_count: int = 5) -> list[str]:
+    """
+    按优先级选择 retry errors。
+
+    不直接取前 max_count 个错误，而是优先选择对结构影响最大的错误：
+    1. D Agent decision 未覆盖
+    2. 分支结果被错误生成为 decision
+    3. decision 出口不足
+    4. 孤立节点
+    5. 返回/重新输入但没有回边
+    6. 其他错误
+
+    这样可以避免 retry 被低优先级或重复错误带偏。
+    """
+
+    if not errors:
+        return []
+
+    selected = []
+    seen = set()
+
+    priority_rules = [
+        # 最高优先级：Decomposition flow 覆盖问题
+        ["Flow Coverage"],
+        ["Decomposition decision flow 未被 Branch 图覆盖"],
+        ["Decomposition decision 未被 Branch 图覆盖"],
+        ["edge.label 不匹配"],
+
+        # 第二优先级：孤立节点 / 断边
+        ["是孤立节点"],
+        ["没有任何连线"],
+        ["没有出边"],
+        ["没有入边"],
+
+        # 第三优先级：返回 / 重试 / 重新输入没有回边
+        ["返回/重新输入", "没有检测到回边"],
+        ["包含返回", "没有检测到回边"],
+        ["重新输入", "没有检测到回边"],
+        ["重新上传", "没有检测到回边"],
+
+        # 第四优先级：decision 出口不足
+        ["至少应该有两个出口"],
+
+        # 第五优先级：判断结果误写成 decision
+        ["像是分支结果"],
+    ]
+
+    def add_error(error: str) -> None:
+        if error in seen:
+            return
+
+        if len(selected) >= max_count:
+            return
+
+        selected.append(error)
+        seen.add(error)
+
+    # 第一轮：按优先级挑关键错误
+    for rule in priority_rules:
+        for error in errors:
+            if all(keyword in error for keyword in rule):
+                add_error(error)
+
+    # 第二轮：如果还没满，再补其他错误
+    for error in errors:
+        add_error(error)
+
+    return selected
+
 def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> dict: #aviod D-Agent mistakely use a unexisted variable
     """
     处理单个流程片段。
@@ -204,8 +273,19 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> dict
                     continue
 
                 filtered_errors.append(error)
-            retry_errors = filtered_errors[:5]
-            repair_tasks = build_repair_tasks(errors)
+            coverage_warnings = [
+                warning
+                for warning in branch_warnings
+                if "[Flow Coverage]" in warning
+                or "Decomposition decision flow 未被 Branch 图覆盖" in warning
+                or "Decomposition decision flow 的 edge.label 不匹配" in warning
+                or "edge.label 不匹配" in warning
+            ]
+
+            retry_candidates = coverage_warnings + filtered_errors
+
+            retry_errors = select_retry_errors(filtered_errors, max_count=10)
+            repair_tasks = build_repair_tasks(retry_errors)
             print("\n[debug] retry_errors:")
             for error in retry_errors:
                 print(error)
@@ -238,7 +318,7 @@ def process_single_flow(user_input: str, output_prefix: str = "flow_01") -> dict
                 # 只有在结构错误和 decision coverage 都通过后，
                 # 再把 flow coverage 作为最终错误。
                 if not errors and flow_coverage_errors:
-                    errors.extend(coverage_errors)
+                    errors.extend(flow_coverage_errors[:6])
 
                     warnings.extend(
                         f"[Flow Coverage] {error}"

@@ -22,6 +22,8 @@ def build_repair_tasks(errors: list[str]) -> str:
             task_lines.append("修复要求：")
             task_lines.append("- 在 nodes 中新增或保留该 decision 节点")
             task_lines.append("- kind 必须是 decision")
+            task_lines.append("- node.text 必须保留错误中缺失 decision 的判断形式，优先直接使用原文")
+            task_lines.append("- 禁止把“是否/能否/是否需要”类判断改写成“成功/失败/选择/不选择/支持/不支持”等结果表达")
             task_lines.append("- 必须根据相关 flows 补全入边和出边")
 
         elif "Decomposition decision flow 未被 Branch 图覆盖" in error:
